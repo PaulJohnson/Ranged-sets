@@ -1,18 +1,13 @@
 Things to do:
   
-* Test with other compilers.
+* Test with yhc.
 
-* Add subset predicates.
-  
 * Define ranges of times and dates.  The set of all Mondays, for instance,
   or the set of all second weeks in the month.  Any such functions would
   have to take a start date because the only alternative is to start
   with the epoch, and that would not be efficient.  The existing date-time
   functions look a bit clunky for this job, but the proposals of
   Ashley Yakeley at http://semantic.org/TimeLib/ look more suitable.
-  
-* Get Ranged Sets integrated in the Base library, if it is judged
-  good enough and useful enough in a future version.
 
 
   
