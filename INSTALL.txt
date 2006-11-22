@@ -1,0 +1,14 @@
+As user, from within the project directory:
+
+   runghc Setup.hs configure
+   runghc Setup.hs build
+
+As root or administrator:
+
+   runghc Setup.hs install
+   
+If you have Haddock then generate the documentation with:
+
+   runghc Setup.hs haddock
+   
+If you use Hugs then type "runhugs" instead of "runghc".
