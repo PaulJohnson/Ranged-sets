@@ -7,6 +7,7 @@ module Data.Ranged.RangedSet (
    unsafeRangedSet,
    validRangeList,
    normaliseRangeList,
+   rSingleton,
    -- ** Predicates
    rSetIsEmpty,
    (-?-),  rSetHas, 
@@ -36,6 +37,7 @@ module Data.Ranged.RangedSet (
 
 import Data.Ranged.Boundaries
 import Data.Ranged.Ranges
+import Data.Monoid
 
 import Data.List
 import Test.QuickCheck
@@ -50,6 +52,9 @@ infixl 5 -<=-, -<-, -?-
 newtype DiscreteOrdered v => RSet v = RSet {rSetRanges :: [Range v]}
    deriving (Eq, Show)
 
+instance DiscreteOrdered a => Monoid (RSet a) where
+    mappend = rSetUnion
+    mempty = rSetEmpty
 
 -- | Determine if the ranges in the list are both in order and non-overlapping.
 -- If so then they are suitable input for the unsafeRangedSet function.
@@ -98,6 +103,9 @@ makeRangedSet = RSet . normaliseRangeList
 unsafeRangedSet :: DiscreteOrdered v => [Range v] -> RSet v
 unsafeRangedSet = RSet
 
+-- | Create a Ranged Set from a single element.
+rSingleton :: DiscreteOrdered v => v -> RSet v
+rSingleton v = unsafeRangedSet [singletonRange v]
 
 -- | True if the set has no members.
 rSetIsEmpty :: DiscreteOrdered v => RSet v -> Bool

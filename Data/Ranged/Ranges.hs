@@ -25,6 +25,7 @@ module Data.Ranged.Ranges (
    rangeHas,
    rangeListHas,
    -- ** Set Operations
+   singletonRange,
    rangeIntersection,
    rangeUnion,
    rangeDifference
@@ -82,14 +83,17 @@ rangeListHas :: Ord v =>
    [Range v] -> v -> Bool
 rangeListHas ls v = or $ map (\r -> rangeHas r v) ls
 
--- The empty range
+-- | The empty range
 emptyRange :: DiscreteOrdered v => Range v
 emptyRange = Range BoundaryAboveAll BoundaryBelowAll
 
--- The full range.  All values are within it.
+-- | The full range.  All values are within it.
 fullRange :: DiscreteOrdered v => Range v
 fullRange = Range BoundaryBelowAll BoundaryAboveAll
 
+-- | A range containing a single value
+singletonRange :: DiscreteOrdered v => v -> Range v
+singletonRange v = Range (BoundaryBelow v) (BoundaryAbove v)
 
 -- | A range is empty unless its upper boundary is greater than its lower
 -- boundary.
