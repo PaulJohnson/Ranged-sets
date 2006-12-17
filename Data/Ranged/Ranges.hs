@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -cpp -fglasgow-exts #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Ranged.Ranges
@@ -21,6 +20,7 @@ module Data.Ranged.Ranges (
    rangeIsEmpty,
    rangeOverlap,
    rangeEncloses,
+   rangeSingletonValue,
    -- ** Membership
    rangeHas,
    rangeListHas,
@@ -56,8 +56,11 @@ instance (DiscreteOrdered a) => Ord (Range a) where
                                  
 instance (Show a, DiscreteOrdered a) => Show (Range a) where
    show r
-      | rangeIsEmpty r   = "Empty"
-      | otherwise      = lowerBound ++ "x" ++ upperBound
+      | rangeIsEmpty r     = "Empty"
+      | otherwise          = 
+         case rangeSingletonValue r of
+            Just v  -> "x == " ++ show v
+            Nothing -> lowerBound ++ "x" ++ upperBound
       where
          lowerBound = case rangeLower r of
             BoundaryBelowAll -> ""
@@ -94,6 +97,14 @@ fullRange = Range BoundaryBelowAll BoundaryAboveAll
 -- | A range containing a single value
 singletonRange :: DiscreteOrdered v => v -> Range v
 singletonRange v = Range (BoundaryBelow v) (BoundaryAbove v)
+
+-- | If the range is a singleton, returns @Just@ the value.  Otherwise returns
+-- @Nothing@.
+rangeSingletonValue :: DiscreteOrdered v => Range v -> Maybe v
+rangeSingletonValue (Range (BoundaryBelow v1) (BoundaryAbove v2))
+   | v1 == v2    = Just v1
+   | otherwise   = Nothing
+rangeSingletonValue _ = Nothing
 
 -- | A range is empty unless its upper boundary is greater than its lower
 -- boundary.
@@ -169,12 +180,16 @@ instance (Arbitrary v,  DiscreteOrdered v, Show v) =>
    Arbitrary (Range v) where
    
    arbitrary = frequency [
-      (18, do
+      (17, do  -- Ordinary range
          b1 <- arbitrary
          b2 <- arbitrary
          if b1 < b2 
             then return $ Range b1 b2
             else return $ Range b2 b1
+      ),
+      (1, do  -- Singleton range
+         v <- arbitrary
+         return $ singletonRange v
       ),
       (1, return emptyRange),
       (1, return fullRange)
@@ -206,7 +221,17 @@ Range difference
 >    (r1 `rangeHas` n && not (r2 `rangeHas` n))
 >    == (r1 `rangeDifference` r2) `rangeListHas` n
 
+Singleton range
+
+> prop_singletonHas v =
+>    singletonRange v `rangeHas` v
+
+> prop_singletonConverse v =
+>    rangeSingletonValue (singletonRange v) == Just v
+
 -}
+
+-- For Integers (sparse type)
 
 -- Range union
 prop_union_int r1 r2 n = 
@@ -227,12 +252,23 @@ prop_difference_int r1 r2 n =
    == (r1 `rangeDifference` r2) `rangeListHas` n
    where t :: Integer ; t = n
 
+-- Range Singleton Has
+prop_singletonHas_int v =
+   singletonRange v `rangeHas` v
+   where t :: Integer ; t = v
 
+-- Range Singleton inverse
+prop_singletonConverse_int v =
+   rangeSingletonValue (singletonRange v) == Just v
+   where t :: Integer ; t = v
+
+-- For Reals (dense type)
+
+-- Range Union
 prop_union_real r1 r2 n = 
    (r1 `rangeHas` n || r2 `rangeHas` n) 
    == (r1 `rangeUnion` r2) `rangeListHas` n
    where t :: Double ; t = n
-
 
 -- Range intersection
 prop_intersection_real r1 r2 n =
@@ -245,3 +281,13 @@ prop_difference_real r1 r2 n =
    (r1 `rangeHas` n && not (r2 `rangeHas` n))
    == (r1 `rangeDifference` r2) `rangeListHas` n
    where t :: Double ; t = n
+
+-- Range Singleton Has
+prop_singletonHas_real v =
+   singletonRange v `rangeHas` v
+   where t :: Double ; t = v
+
+-- Range Singleton inverse
+prop_singletonConverse_real v =
+   rangeSingletonValue (singletonRange v) == Just v
+   where t :: Double ; t = v
