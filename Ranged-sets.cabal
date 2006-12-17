@@ -1,8 +1,8 @@
 Name:           Ranged-sets
-Version:        0.0.3
+Version:        0.0.4
 License:        BSD3
 License-file:   LICENSE.txt
-Copyright:      Paul Johnson, 2005.
+Copyright:      Paul Johnson, 2005, 2006
 Author:         Paul Johnson
 Homepage:       http://ranged-sets.sourceforge.net/
 Maintainer:     paul@cogito.org.uk
