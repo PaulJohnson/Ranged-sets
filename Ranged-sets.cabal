@@ -7,11 +7,11 @@ Author:         Paul Johnson
 Homepage:       http://ranged-sets.sourceforge.net/
 Maintainer:     paul@cogito.org.uk
 Stability:      beta
-Category:       Testing 
+Category:       Data 
 Build-Depends:  base
 Synopsis:       Ranged sets for Haskell
 Description:	A ranged set is an ordered list of ranges.  This allows sets 
 		such as all reals x such that 
                 (0.25 < x <= 0.75 or 1.4 <= x < 2.3 or 4.5 < x).
 Exposed-modules: Data.Ranged, Data.Ranged.Boundaries, Data.Ranged.Ranges, Data.Ranged.RangedSet
-Extra-source-files: README.txt CHANGES.txt INSTALL.txt TODO.txt
+Extra-source-files: README.txt CHANGES.txt INSTALL.txt TODO.txt Doc/Data-Ranged-Boundaries.html Doc/Data-Ranged.html Doc/Data-Ranged-RangedSet.html Doc/Data-Ranged-Ranges.html Doc/doc-index.html Doc/index.html 

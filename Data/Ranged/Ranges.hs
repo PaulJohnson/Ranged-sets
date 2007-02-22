@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
--- |
+-- 
 -- Module      :  Data.Ranged.Ranges
 -- Copyright   :  (c) Paul Johnson 2006
 -- License     :  BSD-style
@@ -11,6 +11,7 @@
 
 
 -- | A range has an upper and lower boundary.
+
 module Data.Ranged.Ranges (
    -- ** Construction
    Range (..),
