@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
--- 
+--
 -- Module      :  Data.Ranged.Ranges
 -- Copyright   :  (c) Paul Johnson 2006
 -- License     :  BSD-style
@@ -9,9 +9,7 @@
 --
 -----------------------------------------------------------------------------
 
-
 -- | A range has an upper and lower boundary.
-
 module Data.Ranged.Ranges (
    -- ** Construction
    Range (..),
@@ -29,9 +27,19 @@ module Data.Ranged.Ranges (
    singletonRange,
    rangeIntersection,
    rangeUnion,
-   rangeDifference
+   rangeDifference,
    -- ** QuickCheck properties
    -- $properties
+   prop_union_int,
+   prop_intersection_int,
+   prop_difference_int,
+   prop_singletonHas_int,
+   prop_singletonConverse_int,
+   prop_union_real,
+   prop_intersection_real,
+   prop_difference_real,
+   prop_singletonHas_real,
+   prop_singletonConverse_real
 ) where
 
 import Data.Ranged.Boundaries
@@ -42,8 +50,8 @@ import Test.QuickCheck
 data Ord v => Range v = Range {rangeLower, rangeUpper :: Boundary v}
 
 instance (DiscreteOrdered a) => Eq (Range a) where
-   r1 == r2   = (rangeIsEmpty r1 && rangeIsEmpty r2) || 
-                (rangeLower r1 == rangeLower r2 && 
+   r1 == r2   = (rangeIsEmpty r1 && rangeIsEmpty r2) ||
+                (rangeLower r1 == rangeLower r2 &&
                  rangeUpper r1 == rangeUpper r2)
 
 
@@ -54,11 +62,11 @@ instance (DiscreteOrdered a) => Ord (Range a) where
       | rangeIsEmpty r2  = GT
       | otherwise      = compare (rangeLower r1, rangeUpper r1)
                                  (rangeLower r2, rangeUpper r2)
-                                 
+
 instance (Show a, DiscreteOrdered a) => Show (Range a) where
    show r
       | rangeIsEmpty r     = "Empty"
-      | otherwise          = 
+      | otherwise          =
          case rangeSingletonValue r of
             Just v  -> "x == " ++ show v
             Nothing -> lowerBound ++ "x" ++ upperBound
@@ -115,34 +123,34 @@ rangeIsEmpty (Range lower upper) = upper <= lower
 
 -- | Two ranges overlap if their intersection is non-empty.
 rangeOverlap :: DiscreteOrdered v => Range v -> Range v -> Bool
-rangeOverlap r1 r2 = 
+rangeOverlap r1 r2 =
    not (rangeIsEmpty r1)
    && not (rangeIsEmpty r2)
    && not (rangeUpper r1 <= rangeLower r2 || rangeUpper r2 <= rangeLower r1)
- 
-  
--- | The first range encloses the second if every value in the second range is 
+
+
+-- | The first range encloses the second if every value in the second range is
 -- also within the first range.  If the second range is empty then this is
 -- always true.
 rangeEncloses :: DiscreteOrdered v => Range v -> Range v -> Bool
 rangeEncloses r1 r2 =
-   (rangeLower r1 <= rangeLower r2 && rangeUpper r2 <= rangeUpper r1) 
+   (rangeLower r1 <= rangeLower r2 && rangeUpper r2 <= rangeUpper r1)
    || rangeIsEmpty r2
 
 
 -- | Intersection of two ranges, if any.
 rangeIntersection :: DiscreteOrdered v => Range v -> Range v -> Range v
-   
+
 rangeIntersection (Range lower1 upper1) (Range lower2 upper2) =
    Range (max lower1 lower2) (min upper1 upper2)
-     
-     
+
+
 -- | Union of two ranges.  Returns one or two results.
 --
 -- If there are two results then they are guaranteed to have a non-empty
 -- gap in between, but may not be in ascending order.
 rangeUnion :: DiscreteOrdered v => Range v -> Range v -> [Range v]
-   
+
 rangeUnion r1@(Range lower1 upper1) r2@(Range lower2 upper2) =
    if touching
       then [Range lower upper]
@@ -153,12 +161,12 @@ rangeUnion r1@(Range lower1 upper1) r2@(Range lower2 upper2) =
       upper = max upper1 upper2
 
 
--- | @range1@ minus @range2@.  Returns zero, one or two results.  Multiple 
--- results are guaranteed to have non-empty gaps in between, but may not be in 
+-- | @range1@ minus @range2@.  Returns zero, one or two results.  Multiple
+-- results are guaranteed to have non-empty gaps in between, but may not be in
 -- ascending order.
 rangeDifference :: DiscreteOrdered v => Range v -> Range v -> [Range v]
-   
-rangeDifference r1@(Range lower1 upper1) r2@(Range lower2 upper2) =
+
+rangeDifference r1@(Range lower1 upper1) (Range lower2 upper2) =
    -- There are six possibilities
    --    1: r2 completely less than r1
    --    2: r2 overlaps bottom of r1
@@ -177,14 +185,14 @@ rangeDifference r1@(Range lower1 upper1) r2@(Range lower2 upper2) =
 
 -- QuickCheck generators
 
-instance (Arbitrary v,  DiscreteOrdered v, Show v) => 
+instance (Arbitrary v,  DiscreteOrdered v, Show v) =>
    Arbitrary (Range v) where
-   
+
    arbitrary = frequency [
       (17, do  -- Ordinary range
          b1 <- arbitrary
          b2 <- arbitrary
-         if b1 < b2 
+         if b1 < b2
             then return $ Range b1 b2
             else return $ Range b2 b1
       ),
@@ -195,19 +203,19 @@ instance (Arbitrary v,  DiscreteOrdered v, Show v) =>
       (1, return emptyRange),
       (1, return fullRange)
       ]
-      
+
    coarbitrary (Range lower upper) =
       variant 0 . coarbitrary lower . coarbitrary upper
-      
 
-         
+
+
 -- QuickCheck Properties
 
 {- $properties
 Range union
 
 > prop_union r1 r2 n =
->    (r1 `rangeHas` n || r2 `rangeHas` n) 
+>    (r1 `rangeHas` n || r2 `rangeHas` n)
 >    == (r1 `rangeUnion` r2) `rangeListHas` n
 
 Range intersection
@@ -235,60 +243,59 @@ Singleton range
 -- For Integers (sparse type)
 
 -- Range union
-prop_union_int r1 r2 n = 
-   (r1 `rangeHas` n || r2 `rangeHas` n) 
+prop_union_int :: Range Integer -> Range Integer -> Integer -> Bool
+prop_union_int r1 r2 n =
+   (r1 `rangeHas` n || r2 `rangeHas` n)
    == (r1 `rangeUnion` r2) `rangeListHas` n
-   where t :: Integer ; t = n
-
 
 -- Range intersection
+prop_intersection_int :: Range Integer -> Range Integer -> Integer -> Bool
 prop_intersection_int r1 r2 n =
    (r1 `rangeHas` n && r2 `rangeHas` n)
    == (r1 `rangeIntersection` r2) `rangeHas` n
-   where t :: Integer ; t = n
 
 -- Range difference
+prop_difference_int :: Range Integer -> Range Integer -> Integer -> Bool
 prop_difference_int r1 r2 n =
    (r1 `rangeHas` n && not (r2 `rangeHas` n))
    == (r1 `rangeDifference` r2) `rangeListHas` n
-   where t :: Integer ; t = n
 
 -- Range Singleton Has
+prop_singletonHas_int :: Integer -> Bool
 prop_singletonHas_int v =
    singletonRange v `rangeHas` v
-   where t :: Integer ; t = v
 
 -- Range Singleton inverse
+prop_singletonConverse_int :: Integer -> Bool
 prop_singletonConverse_int v =
    rangeSingletonValue (singletonRange v) == Just v
-   where t :: Integer ; t = v
 
 -- For Reals (dense type)
 
 -- Range Union
-prop_union_real r1 r2 n = 
-   (r1 `rangeHas` n || r2 `rangeHas` n) 
+prop_union_real :: Range Double -> Range Double -> Double -> Bool
+prop_union_real r1 r2 n =
+   (r1 `rangeHas` n || r2 `rangeHas` n)
    == (r1 `rangeUnion` r2) `rangeListHas` n
-   where t :: Double ; t = n
 
 -- Range intersection
+prop_intersection_real :: Range Double -> Range Double -> Double -> Bool
 prop_intersection_real r1 r2 n =
    (r1 `rangeHas` n && r2 `rangeHas` n)
    == (r1 `rangeIntersection` r2) `rangeHas` n
-   where t :: Double ; t = n
 
 -- Range difference
+prop_difference_real :: Range Double -> Range Double -> Double -> Bool
 prop_difference_real r1 r2 n =
    (r1 `rangeHas` n && not (r2 `rangeHas` n))
    == (r1 `rangeDifference` r2) `rangeListHas` n
-   where t :: Double ; t = n
 
 -- Range Singleton Has
+prop_singletonHas_real :: Double -> Bool
 prop_singletonHas_real v =
    singletonRange v `rangeHas` v
-   where t :: Double ; t = v
 
 -- Range Singleton inverse
+prop_singletonConverse_real :: Double -> Bool
 prop_singletonConverse_real v =
    rangeSingletonValue (singletonRange v) == Just v
-   where t :: Double ; t = v
