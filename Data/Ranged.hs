@@ -1,4 +1,3 @@
-
 module Data.Ranged (
    module Data.Ranged.Boundaries,
    module Data.Ranged.Ranges,
