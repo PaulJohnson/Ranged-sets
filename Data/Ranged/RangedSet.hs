@@ -1,4 +1,4 @@
-module Data.Ranged.RangedSet ( 
+module Data.Ranged.RangedSet (
    -- ** Ranged Set Type
    RSet,
    rSetRanges,
@@ -10,27 +10,51 @@ module Data.Ranged.RangedSet (
    rSingleton,
    -- ** Predicates
    rSetIsEmpty,
-   (-?-),  rSetHas, 
+   (-?-),  rSetHas,
    (-<=-), rSetIsSubset,
    (-<-),  rSetIsSubsetStrict,
    -- ** Set Operations
-   (-\/-), rSetUnion, 
-   (-/\-), rSetIntersection, 
+   (-\/-), rSetUnion,
+   (-/\-), rSetIntersection,
    (-!-),  rSetDifference,
    rSetNegation,
    -- ** Useful Sets
    rSetEmpty,
    rSetFull,
-   rSetUnfold
-   
+   rSetUnfold,
+
    -- ** QuickCheck Properties
-   
+   rSetIsFull,
+   prop_validNormalised,
+   prop_has,
+   prop_union,
+   prop_intersection,
+   prop_difference,
+   prop_negation,
+   prop_not_empty,
+   prop_empty,
+   prop_full,
+   prop_empty_intersection,
+   prop_full_union,
+   prop_union_superset,
+   prop_intersection_subset,
+   prop_diff_intersect,
+   prop_subset,
+   prop_strict_subset,
+   prop_union_strict_superset,
+   prop_intersection_commutes,
+   prop_union_commutes,
+   prop_intersection_associates,
+   prop_union_associates,
+   prop_de_morgan_intersection,
+   prop_de_morgan_union
+
    -- *** Construction
    -- $ConstructionProperties
-   
+
    -- *** Basic Operations
    -- $BasicOperationProperties
-   
+
    -- *** Some Identities and Inequalities
    -- $SomeIdentitiesAndInequalities
 ) where
@@ -48,7 +72,6 @@ infixl 5 -<=-, -<-, -?-
 
 -- | An RSet (for Ranged Set) is a list of ranges.  The ranges must be sorted
 -- and not overlap.
-
 newtype DiscreteOrdered v => RSet v = RSet {rSetRanges :: [Range v]}
    deriving (Eq, Show)
 
@@ -71,24 +94,23 @@ validRangeList ranges = and $ zipWith okAdjacent ranges (tail ranges)
 -- | Rearrange and merge the ranges in the list so that they are in order and
 -- non-overlapping.
 normaliseRangeList :: DiscreteOrdered v => [Range v] -> [Range v]
-   
-normaliseRangeList ranges = 
+normaliseRangeList ranges =
    normalise $ sort $ filter (not . rangeIsEmpty) ranges
-      
+
 
 -- Private routine: normalise a range list that is known to be already sorted.
 -- This precondition is not checked.
 normalise :: DiscreteOrdered v => [Range v] -> [Range v]
 normalise (r1:r2:rs) =
-         if overlap r1 r2  
+         if overlap r1 r2
                then normalise $
-                       Range (rangeLower r1) 
+                       Range (rangeLower r1)
                              (max (rangeUpper r1) (rangeUpper r2))
                        : rs
                else r1 : (normalise $ r2 : rs)
    where
       overlap (Range _ upper1) (Range lower2 _) = upper1 >= lower2
-      
+
 normalise rs = rs
 
 
@@ -98,7 +120,7 @@ makeRangedSet :: DiscreteOrdered v => [Range v] -> RSet v
 makeRangedSet = RSet . normaliseRangeList
 
 
--- | Create a new Ranged Set from a list of ranges. @validRangeList ranges@ 
+-- | Create a new Ranged Set from a list of ranges. @validRangeList ranges@
 -- must return @True@.  This precondition is not checked.
 unsafeRangedSet :: DiscreteOrdered v => [Range v] -> RSet v
 unsafeRangedSet = RSet
@@ -128,9 +150,9 @@ rSetHas (RSet ls) value = rSetHas1 ls
 
 (-?-) = rSetHas
 
--- | True if the first argument is a subset of the second argument, or is 
--- equal. 
--- 
+-- | True if the first argument is a subset of the second argument, or is
+-- equal.
+--
 -- Infix precedence is left 5.
 rSetIsSubset, (-<=-) :: DiscreteOrdered v => RSet v -> RSet v -> Bool
 rSetIsSubset rs1 rs2 = rSetIsEmpty (rs1 -!- rs2)
@@ -138,13 +160,13 @@ rSetIsSubset rs1 rs2 = rSetIsEmpty (rs1 -!- rs2)
 
 
 -- | True if the first argument is a strict subset of the second argument.
--- 
+--
 -- Infix precedence is left 5.
 rSetIsSubsetStrict, (-<-) :: DiscreteOrdered v => RSet v -> RSet v -> Bool
-rSetIsSubsetStrict rs1 rs2 = 
-   rSetIsEmpty (rs1 -!- rs2) 
+rSetIsSubsetStrict rs1 rs2 =
+   rSetIsEmpty (rs1 -!- rs2)
    && not (rSetIsEmpty (rs2 -!- rs1))
-   
+
 (-<-) = rSetIsSubsetStrict
 
 -- | Set union for ranged sets.  Infix precedence is left 6.
@@ -153,25 +175,25 @@ rSetUnion, (-\/-) :: DiscreteOrdered v => RSet v -> RSet v -> RSet v
 -- sorted list and then calls normalise to combine overlapping ranges.
 rSetUnion (RSet ls1) (RSet ls2) = RSet $ normalise $ merge ls1 ls2
    where
-      merge ls1 [] = ls1
-      merge [] ls2 = ls2
-      merge ls1@(h1:t1) ls2@(h2:t2) =
+      merge ms1 [] = ms1
+      merge [] ms2 = ms2
+      merge ms1@(h1:t1) ms2@(h2:t2) =
          if h1 <  h2
-            then h1 : merge t1 ls2
-            else h2 : merge ls1 t2
+            then h1 : merge t1 ms2
+            else h2 : merge ms1 t2
 
 (-\/-) = rSetUnion
 
 -- | Set intersection for ranged sets.  Infix precedence is left 7.
 rSetIntersection, (-/\-) :: DiscreteOrdered v => RSet v -> RSet v -> RSet v
-rSetIntersection (RSet ls1) (RSet ls2) =  
+rSetIntersection (RSet ls1) (RSet ls2) =
    RSet $ filter (not . rangeIsEmpty) $ merge ls1 ls2
    where
-      merge ls1@(h1:t1) ls2@(h2:t2) =
-         rangeIntersection h1 h2 
+      merge ms1@(h1:t1) ms2@(h2:t2) =
+         rangeIntersection h1 h2
          : if rangeUpper h1 < rangeUpper h2
-               then merge t1 ls2
-               else merge ls1 t2
+               then merge t1 ms2
+               else merge ms1 t2
       merge _ _ = []
 
 (-/\-) = rSetIntersection
@@ -194,10 +216,9 @@ rSetNegation set = RSet $ ranges $ setBounds1
       setBounds1 = case setBounds of
          (BoundaryBelowAll : bs)  -> bs
          _                        -> BoundaryBelowAll : setBounds
-      setBounds = bounds $ rSetRanges set 
+      setBounds = bounds $ rSetRanges set
       bounds (r:rs) = rangeLower r : rangeUpper r : bounds rs
       bounds _ = []
-
 
 -- | The empty set.
 rSetEmpty :: DiscreteOrdered a => RSet a
@@ -207,32 +228,31 @@ rSetEmpty = RSet []
 rSetFull :: DiscreteOrdered a => RSet a
 rSetFull = RSet [Range BoundaryBelowAll BoundaryAboveAll]
 
-
 -- | Construct a range set.
-rSetUnfold :: DiscreteOrdered a => 
+rSetUnfold :: DiscreteOrdered a =>
    Boundary a
       -- ^ A first lower boundary.
-   -> (Boundary a -> Boundary a) 
+   -> (Boundary a -> Boundary a)
       -- ^ A function from a lower boundary to an upper boundary, which must
       -- return a result greater than the argument (not checked).
    -> (Boundary a -> Maybe (Boundary a))
-      -- ^ A function from a lower boundary to @Maybe@ the successor lower 
-      -- boundary, which must return a result greater than the argument 
+      -- ^ A function from a lower boundary to @Maybe@ the successor lower
+      -- boundary, which must return a result greater than the argument
       -- (not checked).
    -> RSet a
 rSetUnfold bound upperFunc succFunc = RSet $ normalise $ ranges bound
    where
-      ranges b = 
+      ranges b =
          Range b (upperFunc bound)
          : case succFunc b of
             Just b2 -> ranges b2
             Nothing -> []
-   
-   
+
+
 -- QuickCheck Generators
 
-instance (Arbitrary v, DiscreteOrdered v, Show v) => 
-      Arbitrary (RSet v) 
+instance (Arbitrary v, DiscreteOrdered v, Show v) =>
+      Arbitrary (RSet v)
    where
    arbitrary = frequency [
       (1, return rSetEmpty),
@@ -247,10 +267,10 @@ instance (Arbitrary v, DiscreteOrdered v, Show v) =>
          -- and pair them off.  Odd boundaries are dropped.
          rangeList (b1:b2:bs) = Range b1 b2 : rangeList bs
          rangeList _ = []
-      
+
    coarbitrary (RSet ls) = variant 0 . coarbitrary ls
 
--- ==================================================================  
+-- ==================================================================
 -- QuickCheck Properties
 -- ==================================================================
 
@@ -278,13 +298,13 @@ constructed from that list.
 -}
 
 -- A normalised range list is valid for unsafeRangedSet
+prop_validNormalised :: [Range Integer] -> Bool
 prop_validNormalised ls = validRangeList $ normaliseRangeList ls
-   where types = ls :: [Range Integer]
 
 -- Iff a value is in a range list then it is in a ranged set
 -- constructed from that list.
+prop_has :: [Range Integer] -> Integer -> Bool
 prop_has ls v = (ls `rangeListHas` v) == makeRangedSet ls -?- v
-   where types = v :: Integer
 
 ---------------------------------------------------------------------
 -- Basic operation properties
@@ -303,15 +323,15 @@ of those two sets.
 > prop_intersection rs1 rs2 v =
 >    (rs1 -?- v && rs2 -?- v) == ((rs1 -/\- rs2) -?- v)
 
-      
+
 Iff a value is in ranged set 1 and not in ranged set 2 then it is in the
 difference of the two.
 
-> prop_difference rs1 rs2 v = 
+> prop_difference rs1 rs2 v =
 >    (rs1 -?- v && not (rs2 -?- v)) == ((rs1 -!- rs2) -?- v)
 
 
-Iff a value is not in a ranged set then it is in its negation.      
+Iff a value is not in a ranged set then it is in its negation.
 
 > prop_negation rs v = rs -?- v == not (rSetNegation rs -?- v)
 
@@ -320,36 +340,32 @@ A set that contains a value is not empty
 
 > prop_not_empty rs v = (rs -?- v) ==> not (rSetIsEmpty rs)
 
--}     
- 
+-}
+
 -- Iff a value is in either of two ranged sets then it is in the union of
 -- those two sets.
+prop_union :: RSet Integer -> RSet Integer -> Integer -> Bool
 prop_union rs1 rs2 v = (rs1 -?- v || rs2 -?- v) == ((rs1 -\/- rs2) -?- v)
-   where types = v :: Integer
 
 -- Iff a value is in both of two ranged sets then it is in the intersection
 -- of those two sets.
-prop_intersection rs1 rs2 v = 
+prop_intersection :: RSet Integer -> RSet Integer -> Integer -> Bool
+prop_intersection rs1 rs2 v =
    (rs1 -?- v && rs2 -?- v) == ((rs1 `rSetIntersection` rs2) -?- v)
-   where types = v :: Integer
 
-      
 -- Iff a value is in ranged set 1 and not in ranged set 2 then it is in the
 -- difference of the two.
-prop_difference rs1 rs2 v = 
+prop_difference :: RSet Integer -> RSet Integer -> Integer -> Bool
+prop_difference rs1 rs2 v =
    (rs1 -?- v && not (rs2 -?- v)) == ((rs1 -!- rs2) -?- v)
-   where types = v :: Integer
 
-
--- Iff a value is not in a ranged set then it is in its negation.      
+-- Iff a value is not in a ranged set then it is in its negation.
+prop_negation :: RSet Integer -> Integer -> Bool
 prop_negation rs v = rs -?- v == not (rSetNegation rs -?- v)
-   where types = v :: Integer
-
 
 -- A set that contains a value is not empty
+prop_not_empty :: RSet Integer -> Integer -> Property
 prop_not_empty rs v = (rs -?- v) ==> not (rSetIsEmpty rs)
-   where types = v :: Integer
-   
 
 ---------------------------------------------------------------------
 -- Some identities and inequalities of sets
@@ -370,9 +386,9 @@ The full set has every member.
 The intersection of a set with its negation is empty.
 
 > prop_empty_intersection rs =
->    rSetIsEmpty (rs -/\- rSetNegation rs) 
-   
-   
+>    rSetIsEmpty (rs -/\- rSetNegation rs)
+
+
 The union of a set with its negation is full.
 
 > prop_full_union rs v =
@@ -382,10 +398,10 @@ The union of a set with its negation is full.
 The union of two sets is the non-strict superset of both.
 
 > prop_union_superset rs1 rs2 =
->    rs1 -<=- u && rs2 -<=- u 
+>    rs1 -<=- u && rs2 -<=- u
 >    where
 >       u = rs1 -\/- rs2
-      
+
 The intersection of two sets is the non-strict subset of both.
 
 > prop_intersection_subset rs1 rs2 =
@@ -402,13 +418,13 @@ A set is the non-strict subset of itself.
 
 > prop_subset rs = rs -<=- rs
 
-   
+
 A set is not the strict subset of itself.
 
 > prop_strict_subset rs = not (rs -<- rs)
-   
 
-If rs1 - rs2 is not empty then the union of rs1 and rs2 will be a strict 
+
+If rs1 - rs2 is not empty then the union of rs1 and rs2 will be a strict
 superset of rs2.
 
 > prop_union_strict_superset rs1 rs2 =
@@ -419,17 +435,17 @@ Intersection commutes
 
 > prop_intersection_commutes rs1 rs2 =
 >    (rs1 -/\- rs2) == (rs2 -/\- rs1)
-   
+
 Union commutes
 
 > prop_union_commutes rs1 rs2 =
 >    (rs1 -\/- rs2) == (rs2 -\/- rs1)
-   
+
 Intersection associates
 
 > prop_intersection_associates rs1 rs2 rs3 =
 >    ((rs1 -/\- rs2) -/\- rs3) == (rs1 -/\- (rs2 -/\- rs3))
-  
+
 Union associates
 
 > prop_union_associates rs1 rs2 rs3 =
@@ -448,35 +464,33 @@ De Morgan's Law for Union
 -}
 
 -- The empty set has no members.
+prop_empty :: Integer -> Bool
 prop_empty v = not (rSetEmpty -?- v)
-   where types = v :: Integer
-
 
 -- The full set has every member.
+prop_full :: Integer -> Bool
 prop_full v = rSetFull -?- v
-   where types = v :: Integer
-
 
 -- The intersection of a set with its negation is empty.
+prop_empty_intersection :: RSet Integer -> Bool
 prop_empty_intersection rs =
-   rSetIsEmpty (rs -/\- rSetNegation rs) 
-   where types = rs :: RSet Integer
-   
-   
+   rSetIsEmpty (rs -/\- rSetNegation rs)
+
 -- The union of a set with its negation is full.
+prop_full_union :: RSet Integer -> Bool
 prop_full_union rs =
    rSetIsFull (rs -\/- rSetNegation rs)
-   where types = rs :: RSet Integer
-
 
 -- The union of two sets is the non-strict superset of both.
+prop_union_superset :: RSet Integer -> RSet Integer -> Bool
 prop_union_superset rs1 rs2 =
-   rs1 -<=- u && rs2 -<=- u 
+   rs1 -<=- u && rs2 -<=- u
    where
       u :: RSet Integer
       u = rs1 -\/- rs2
-      
+
 -- The intersection of two sets is the non-strict subset of both.
+prop_intersection_subset :: RSet Integer -> RSet Integer -> Bool
 prop_intersection_subset rs1 rs2 =
    i -<=- rs1 && i -<=- rs2
    where
@@ -484,56 +498,54 @@ prop_intersection_subset rs1 rs2 =
       i = rs1 -/\- rs2
 
 -- The difference of two sets intersected with the subtractand is empty.
+prop_diff_intersect :: RSet Integer -> RSet Integer -> Bool
 prop_diff_intersect rs1 rs2 =
    rSetIsEmpty ((rs1 -!- rs2) -/\- rs2)
-   where types = rs1 :: RSet Integer
-   
-   
+
 -- A set is the non-strict subset of itself.
+prop_subset :: RSet Integer -> Bool
 prop_subset rs =
    rs -<=- rs
-   where types = rs :: RSet Integer
-   
--- A set is not the strict subset of itself.
-prop_strict_subset rs =
-   not (rs -<- rs)
-   where types = rs :: RSet Integer
-   
 
--- If rs1 - rs2 is not empty then the union of rs1 and rs2 will be a strict 
+-- A set is not the strict subset of itself.
+prop_strict_subset :: RSet Integer -> Bool
+prop_strict_subset rs = not (rs -<- rs)
+
+-- If rs1 - rs2 is not empty then the union of rs1 and rs2 will be a strict
 -- superset of rs2.
+prop_union_strict_superset :: RSet Integer -> RSet Integer -> Property
 prop_union_strict_superset rs1 rs2 =
    (not $ rSetIsEmpty (rs1 -!- rs2))
    ==> (rs2 -<- (rs1 -\/- rs2))
-   where types = rs1 :: RSet Integer
 
 -- Intersection commutes
 prop_intersection_commutes :: RSet Integer -> RSet Integer -> Bool
 prop_intersection_commutes rs1 rs2 =
    (rs1 -/\- rs2) == (rs2 -/\- rs1)
-   where types = rs1 :: RSet Integer
-   
+
 -- Union commutes
+prop_union_commutes :: RSet Integer -> RSet Integer -> Bool
 prop_union_commutes rs1 rs2 =
    (rs1 -\/- rs2) == (rs2 -\/- rs1)
-   where types = rs1 :: RSet Integer
-   
+
 -- Intersection associates
+prop_intersection_associates :: RSet Integer -> RSet Integer  -> RSet Integer
+                                                            -> Bool
 prop_intersection_associates rs1 rs2 rs3 =
    ((rs1 -/\- rs2) -/\- rs3) == (rs1 -/\- (rs2 -/\- rs3))
-   where types = rs1 :: RSet Integer
-   
+
 -- Union associates
+prop_union_associates :: RSet Integer -> RSet Integer  -> RSet Integer
+                                                     -> Bool
 prop_union_associates rs1 rs2 rs3 =
    ((rs1 -\/- rs2) -\/- rs3) == (rs1 -\/- (rs2 -\/- rs3))
-   where types = rs1 :: RSet Integer
-   
+
 -- De Morgan's Law for Intersection
+prop_de_morgan_intersection :: (DiscreteOrdered a) => RSet a -> RSet a -> Bool
 prop_de_morgan_intersection rs1 rs2 =
    rSetNegation (rs1 -/\- rs2) == (rSetNegation rs1 -\/- rSetNegation rs2)
-   where types = rs1 :: RSet Integer
 
 -- De Morgan's Law for Union
+prop_de_morgan_union :: (DiscreteOrdered a) => RSet a -> RSet a -> Bool
 prop_de_morgan_union rs1 rs2 =
    rSetNegation (rs1 -\/- rs2) == (rSetNegation rs1 -/\- rSetNegation rs2)
-   where types = rs1 :: RSet Integer
