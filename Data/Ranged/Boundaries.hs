@@ -10,10 +10,10 @@
 -----------------------------------------------------------------------------
 
 module Data.Ranged.Boundaries (
-   DiscreteOrdered,
-   adjacent,
+   DiscreteOrdered (..),
    enumAdjacent,
    boundedAdjacent,
+   boundedBelow,
    Boundary (..),
    above,
    (/>/)
@@ -35,38 +35,93 @@ finitely many values.  This class treats them as dense.
 Tuples up to 4 members are declared as instances.  Larger tuples may be added
 if necessary.
 
+Most values of sparse types have an @adjacentBelow@, such that, for all x:
+
+> case adjacentBelow x of
+>    Just x1 -> adjacent x1 x
+>    Nothing -> True
+
+The exception is for bounded types when @x == lowerBound@.  For dense types
+@adjacentBelow@ always returns 'Nothing'.
+
 This approach was suggested by Ben Rudiak-Gould on comp.lang.functional.
 -}
+
 class Ord a => DiscreteOrdered a where
    -- | Two values @x@ and @y@ are adjacent if @x < y@ and there does not
    -- exist a third value between them.  Always @False@ for dense types.
    adjacent :: a -> a -> Bool
+   -- | The value immediately below the argument, if it can be determined.
+   adjacentBelow :: a -> Maybe a
 
-instance DiscreteOrdered Bool         where adjacent = boundedAdjacent
-instance DiscreteOrdered Ordering     where adjacent = boundedAdjacent
-instance DiscreteOrdered Char         where adjacent = boundedAdjacent
-instance DiscreteOrdered Int          where adjacent = boundedAdjacent
-instance DiscreteOrdered Integer      where adjacent = enumAdjacent
-instance Integral a => DiscreteOrdered (Ratio a)
-                                      where adjacent _ _ = False
-instance DiscreteOrdered Float        where adjacent _ _ = False
-instance DiscreteOrdered Double       where adjacent _ _ = False
-instance Ord a => DiscreteOrdered [a] where adjacent _ _ = False
+
+-- Implementation note: the precise rules about unbounded enumerated vs 
+-- bounded enumerated types are difficult to express using Haskell 98, so
+-- the prelude types are listed individually here.
+
+instance DiscreteOrdered Bool where 
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Ordering where 
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Char where 
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Int where 
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Integer where 
+   adjacent = enumAdjacent
+   adjacentBelow = Just . pred
+
+instance DiscreteOrdered Double where
+   adjacent _ _ = False
+   adjacentBelow = const Nothing
+
+instance DiscreteOrdered Float where
+   adjacent _ _ = False
+   adjacentBelow = const Nothing
+
+instance (Integral a) => DiscreteOrdered (Ratio a) where
+   adjacent _ _ = False
+   adjacentBelow = const Nothing
+
+instance Ord a => DiscreteOrdered [a] where
+   adjacent _ _ = False
+   adjacentBelow = const Nothing
+
 instance (Ord a, DiscreteOrdered b) => DiscreteOrdered (a, b)
-   where adjacent (x1, x2) (y1, y2) = (x1 == y1) && adjacent x2 y2
+   where
+      adjacent (x1, x2) (y1, y2) = (x1 == y1) && adjacent x2 y2
+      adjacentBelow (x1, x2) = do -- Maybe monad
+         x2' <- adjacentBelow x2
+         return (x1, x2')
+
 instance (Ord a, Ord b, DiscreteOrdered c) => DiscreteOrdered (a, b, c)
    where
       adjacent (x1, x2, x3) (y1, y2, y3) =
          (x1 == y1) && (x2 == y2) && adjacent x3 y3
+      adjacentBelow (x1, x2, x3) = do -- Maybe monad
+         x3' <- adjacentBelow x3
+         return (x1, x2, x3')
+
 instance (Ord a, Ord b, Ord c, DiscreteOrdered d) =>
          DiscreteOrdered (a, b, c, d)
    where
       adjacent (x1, x2, x3, x4) (y1, y2, y3, y4) =
          (x1 == y1) && (x2 == y2) && (x3 == y3) && adjacent x4 y4
+      adjacentBelow (x1, x2, x3, x4) = do -- Maybe monad
+         x4' <- adjacentBelow x4
+         return (x1, x2, x3, x4')
+
 
 -- | Check adjacency for sparse enumerated types (i.e. where there
--- is no value between @x@ and @succ x@).  Use as the definition of
--- "adjacent" for most enumerated types.
+-- is no value between @x@ and @succ x@).
 enumAdjacent :: (Ord a, Enum a) => a -> a -> Bool
 enumAdjacent x y = (succ x == y)
 
@@ -75,6 +130,10 @@ enumAdjacent x y = (succ x == y)
 boundedAdjacent :: (Ord a, Enum a) => a -> a -> Bool
 boundedAdjacent x y = if x < y then succ x == y else False
 
+
+-- | The usual implementation of 'adjacentBelow' for bounded enumerated types.
+boundedBelow :: (Eq a, Enum a, Bounded a) => a -> Maybe a
+boundedBelow x = if x == minBound then Nothing else Just $ pred x
 
 {- |
 A Boundary is a division of an ordered type into values above

@@ -17,6 +17,7 @@ module Data.Ranged.Ranges (
    fullRange,
    -- ** Predicates
    rangeIsEmpty,
+   rangeIsFull,
    rangeOverlap,
    rangeEncloses,
    rangeSingletonValue,
@@ -30,18 +31,19 @@ module Data.Ranged.Ranges (
    rangeDifference,
    -- ** QuickCheck properties
    -- $properties
-   prop_union_int,
-   prop_intersection_int,
-   prop_difference_int,
-   prop_singletonHas_int,
-   prop_singletonConverse_int,
-   prop_union_real,
-   prop_intersection_real,
-   prop_difference_real,
-   prop_singletonHas_real,
-   prop_singletonConverse_real
+   prop_unionRange,
+   prop_intersectionRange,
+   prop_differenceRange,
+   prop_singletonRangeHas,
+   prop_singletonRangeHasOnly,
+   prop_singletonRangeConverse,
+   prop_emptyNonSingleton,
+   prop_fullNonSingleton,
+   prop_nonSingleton,
+   prop_intSingleton
 ) where
 
+import Control.Monad
 import Data.Ranged.Boundaries
 import Data.Maybe
 import Test.QuickCheck
@@ -66,6 +68,7 @@ instance (DiscreteOrdered a) => Ord (Range a) where
 instance (Show a, DiscreteOrdered a) => Show (Range a) where
    show r
       | rangeIsEmpty r     = "Empty"
+      | rangeIsFull r      = "All x"
       | otherwise          =
          case rangeSingletonValue r of
             Just v  -> "x == " ++ show v
@@ -95,31 +98,56 @@ rangeListHas :: Ord v =>
    [Range v] -> v -> Bool
 rangeListHas ls v = or $ map (\r -> rangeHas r v) ls
 
+
 -- | The empty range
 emptyRange :: DiscreteOrdered v => Range v
 emptyRange = Range BoundaryAboveAll BoundaryBelowAll
+
 
 -- | The full range.  All values are within it.
 fullRange :: DiscreteOrdered v => Range v
 fullRange = Range BoundaryBelowAll BoundaryAboveAll
 
+
 -- | A range containing a single value
 singletonRange :: DiscreteOrdered v => v -> Range v
 singletonRange v = Range (BoundaryBelow v) (BoundaryAbove v)
 
+
 -- | If the range is a singleton, returns @Just@ the value.  Otherwise returns
 -- @Nothing@.
+--
+-- Known bug: This always returns @Nothing@ for ranges including 
+-- @BoundaryBelowAll@ or @BoundaryAboveAll@.  For bounded types this can be 
+-- incorrect.  For instance, the following range only contains one value:
+-- 
+-- >    Range (BoundaryBelow maxBound) BoundaryAboveAll
 rangeSingletonValue :: DiscreteOrdered v => Range v -> Maybe v
+rangeSingletonValue (Range (BoundaryBelow v1) (BoundaryBelow v2))
+   | adjacent v1 v2  = Just v1
+   | otherwise       = Nothing
 rangeSingletonValue (Range (BoundaryBelow v1) (BoundaryAbove v2))
-   | v1 == v2    = Just v1
-   | otherwise   = Nothing
-rangeSingletonValue _ = Nothing
+   | v1 == v2        = Just v1
+   | otherwise       = Nothing
+rangeSingletonValue (Range (BoundaryAbove v1) (BoundaryBelow v2)) = 
+   do
+      v2' <- adjacentBelow v2
+      v2'' <- adjacentBelow v2'
+      if v1 == v2'' then return v2' else Nothing
+rangeSingletonValue (Range (BoundaryAbove v1) (BoundaryAbove v2))
+   | adjacent v1 v2  = Just v2
+   | otherwise       = Nothing
+rangeSingletonValue (Range _ _) = Nothing
 
 -- | A range is empty unless its upper boundary is greater than its lower
 -- boundary.
 rangeIsEmpty :: DiscreteOrdered v => Range v -> Bool
 rangeIsEmpty (Range lower upper) = upper <= lower
 
+
+-- | A range is full if it contains every possible value.
+rangeIsFull :: DiscreteOrdered v => Range v -> Bool
+rangeIsFull = (== fullRange)
 
 -- | Two ranges overlap if their intersection is non-empty.
 rangeOverlap :: DiscreteOrdered v => Range v -> Range v -> Bool
@@ -212,6 +240,11 @@ instance (Arbitrary v,  DiscreteOrdered v, Show v) =>
 -- QuickCheck Properties
 
 {- $properties
+These properties are defined twice, once for a sparse type (Integer), and 
+once for a dense type (Double).  Since the properties are identical for both, 
+definitons are given in the comments only for the Integer versions.
+
+
 Range union
 
 > prop_union r1 r2 n =
@@ -240,62 +273,93 @@ Singleton range
 
 -}
 
--- For Integers (sparse type)
 
--- Range union
-prop_union_int :: Range Integer -> Range Integer -> Integer -> Bool
-prop_union_int r1 r2 n =
+-- | Range union
+-- 
+-- > prop_unionRange r1 r2 n =
+-- >    (r1 `rangeHas` n || r2 `rangeHas` n)
+-- >    == (r1 `rangeUnion` r2) `rangeListHas` n
+prop_unionRange :: (DiscreteOrdered a) => Range a -> Range a -> a -> Bool
+prop_unionRange r1 r2 n =
    (r1 `rangeHas` n || r2 `rangeHas` n)
    == (r1 `rangeUnion` r2) `rangeListHas` n
 
--- Range intersection
-prop_intersection_int :: Range Integer -> Range Integer -> Integer -> Bool
-prop_intersection_int r1 r2 n =
+-- | Range intersection
+-- 
+-- > prop_intersectionRange r1 r2 n =
+-- >    (r1 `rangeHas` n && r2 `rangeHas` n)
+-- >    == (r1 `rangeIntersection` r2) `rangeHas` n
+prop_intersectionRange :: (DiscreteOrdered a) => Range a -> Range a -> a -> Bool
+prop_intersectionRange r1 r2 n =
    (r1 `rangeHas` n && r2 `rangeHas` n)
    == (r1 `rangeIntersection` r2) `rangeHas` n
 
--- Range difference
-prop_difference_int :: Range Integer -> Range Integer -> Integer -> Bool
-prop_difference_int r1 r2 n =
+-- | Range difference
+-- 
+-- > prop_differenceRange r1 r2 n =
+-- >    (r1 `rangeHas` n && not (r2 `rangeHas` n))
+-- >    == (r1 `rangeDifference` r2) `rangeListHas` n
+prop_differenceRange :: (DiscreteOrdered a) => Range a -> Range a -> a -> Bool
+prop_differenceRange r1 r2 n =
    (r1 `rangeHas` n && not (r2 `rangeHas` n))
    == (r1 `rangeDifference` r2) `rangeListHas` n
 
--- Range Singleton Has
-prop_singletonHas_int :: Integer -> Bool
-prop_singletonHas_int v =
-   singletonRange v `rangeHas` v
+-- | Range Singleton has its member.
+-- 
+-- > prop_singletonRangeHas v = singletonRange v `rangeHas` v
+prop_singletonRangeHas :: (DiscreteOrdered a) => a -> Bool
+prop_singletonRangeHas v = singletonRange v `rangeHas` v
 
--- Range Singleton inverse
-prop_singletonConverse_int :: Integer -> Bool
-prop_singletonConverse_int v =
+-- | Range Singleton has only its member.
+-- 
+-- > prop_singletonHasOnly v1 v2 =
+-- >    (v1 == v2) == (singletonRange v1 `rangeHas` v2)
+prop_singletonRangeHasOnly :: (DiscreteOrdered a) => a -> a -> Bool
+prop_singletonRangeHasOnly v1 v2 =
+   (v1 == v2) == (singletonRange v1 `rangeHas` v2)
+
+-- | A singleton range can have its value extracted.
+-- 
+-- > prop_singletonRangeConverse v =
+-- >    rangeSingletonValue (singletonRange v) == Just v
+prop_singletonRangeConverse:: (DiscreteOrdered a) => a -> Bool
+prop_singletonRangeConverse v =
    rangeSingletonValue (singletonRange v) == Just v
 
--- For Reals (dense type)
+-- | The empty range is not a singleton.
+-- 
+-- > prop_emptyNonSingleton = rangeSingletonValue emptyRange == Nothing
+prop_emptyNonSingleton :: Bool
+prop_emptyNonSingleton = 
+    rangeSingletonValue (emptyRange :: Range Int) == Nothing
 
--- Range Union
-prop_union_real :: Range Double -> Range Double -> Double -> Bool
-prop_union_real r1 r2 n =
-   (r1 `rangeHas` n || r2 `rangeHas` n)
-   == (r1 `rangeUnion` r2) `rangeListHas` n
+-- | The full range is not a singleton.
+-- 
+-- > prop_fullNonSingleton = rangeSingletonValue fullRange == Nothing
+prop_fullNonSingleton :: Bool
+prop_fullNonSingleton = 
+    rangeSingletonValue (fullRange :: Range Int) == Nothing
 
--- Range intersection
-prop_intersection_real :: Range Double -> Range Double -> Double -> Bool
-prop_intersection_real r1 r2 n =
-   (r1 `rangeHas` n && r2 `rangeHas` n)
-   == (r1 `rangeIntersection` r2) `rangeHas` n
+-- | For real x and y, @x < y@ implies that any range between them is a
+-- non-singleton.
+prop_nonSingleton :: Double -> Double -> Property
+prop_nonSingleton x y = (x < y) ==> null $ mapMaybe rangeSingletonValue rs
+   where rs = [
+          Range (BoundaryBelow x) (BoundaryBelow y),
+          Range (BoundaryAbove x) (BoundaryBelow y),
+          Range (BoundaryBelow x) (BoundaryAbove y),
+          Range (BoundaryAbove x) (BoundaryAbove y)]
 
--- Range difference
-prop_difference_real :: Range Double -> Range Double -> Double -> Bool
-prop_difference_real r1 r2 n =
-   (r1 `rangeHas` n && not (r2 `rangeHas` n))
-   == (r1 `rangeDifference` r2) `rangeListHas` n
 
--- Range Singleton Has
-prop_singletonHas_real :: Double -> Bool
-prop_singletonHas_real v =
-   singletonRange v `rangeHas` v
+-- | For all integers x and y, any range formed from boundaries on either side
+-- of x and y is a singleton iff it contains exactly one integer.
+prop_intSingleton :: Integer -> Integer -> Property
+prop_intSingleton x y = forAll (rangeAround x y) $ \r ->
+                        case filter (rangeHas r) [x-1 .. y+1] of
+                          [v]  -> rangeSingletonValue r == Just v
+                          _    -> rangeSingletonValue r == Nothing
+    where
+      rangeAround v1 v2 = return Range `ap` genBound v1 `ap` genBound v2
+      genBound v = elements [BoundaryAbove v, BoundaryBelow v]
+   
 
--- Range Singleton inverse
-prop_singletonConverse_real :: Double -> Bool
-prop_singletonConverse_real v =
-   rangeSingletonValue (singletonRange v) == Just v
