@@ -34,6 +34,8 @@ module Data.Ranged.Ranges (
    prop_unionRange,
    prop_intersectionRange,
    prop_differenceRange,
+   prop_intersectionOverlap,
+   prop_enclosureUnion,
    prop_singletonRangeHas,
    prop_singletonRangeHasOnly,
    prop_singletonRangeConverse,
@@ -168,9 +170,9 @@ rangeEncloses r1 r2 =
 
 -- | Intersection of two ranges, if any.
 rangeIntersection :: DiscreteOrdered v => Range v -> Range v -> Range v
-
-rangeIntersection (Range lower1 upper1) (Range lower2 upper2) =
-   Range (max lower1 lower2) (min upper1 upper2)
+rangeIntersection r1@(Range lower1 upper1) r2@(Range lower2 upper2)
+    | rangeIsEmpty r1 || rangeIsEmpty r2  = emptyRange
+    | otherwise  = Range (max lower1 lower2) (min upper1 upper2)
 
 
 -- | Union of two ranges.  Returns one or two results.
@@ -178,15 +180,15 @@ rangeIntersection (Range lower1 upper1) (Range lower2 upper2) =
 -- If there are two results then they are guaranteed to have a non-empty
 -- gap in between, but may not be in ascending order.
 rangeUnion :: DiscreteOrdered v => Range v -> Range v -> [Range v]
-
-rangeUnion r1@(Range lower1 upper1) r2@(Range lower2 upper2) =
-   if touching
-      then [Range lower upper]
-      else [r1, r2]
+rangeUnion r1@(Range lower1 upper1) r2@(Range lower2 upper2)
+   | rangeIsEmpty r1  = [r2]
+   | rangeIsEmpty r2  = [r1]
+   | otherwise =
+       if touching then [Range lower upper] else [r1, r2]
    where
-      touching = (max lower1 lower2) <= (min upper1 upper2)
-      lower = min lower1 lower2
-      upper = max upper1 upper2
+     touching = (max lower1 lower2) <= (min upper1 upper2)
+     lower = min lower1 lower2
+     upper = max upper1 upper2
 
 
 -- | @range1@ minus @range2@.  Returns zero, one or two results.  Multiple
@@ -293,6 +295,20 @@ prop_intersectionRange :: (DiscreteOrdered a) => Range a -> Range a -> a -> Bool
 prop_intersectionRange r1 r2 n =
    (r1 `rangeHas` n && r2 `rangeHas` n)
    == (r1 `rangeIntersection` r2) `rangeHas` n
+
+-- | Range overlap is intersection
+-- 
+-- > prop_intersectionOverlap r1 r2 = 
+-- >     (rangeIsEmpty $ rangeIntersection r1 r2) == (rangeOverlap r1 r2)
+
+prop_intersectionOverlap :: (DiscreteOrdered a) => Range a -> Range a -> Bool
+prop_intersectionOverlap r1 r2 = 
+    (rangeIsEmpty $ rangeIntersection r1 r2) == not (rangeOverlap r1 r2)
+
+-- | Range enclosure makes union an identity function.
+prop_enclosureUnion :: (DiscreteOrdered a) => Range a -> Range a -> Bool
+prop_enclosureUnion r1 r2 =
+    rangeEncloses r1 r2 == (rangeUnion r1 r2 == [r1])
 
 -- | Range difference
 -- 

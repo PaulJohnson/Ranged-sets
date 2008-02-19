@@ -35,3 +35,9 @@ Fixed the infinite loop with infinite sets, at least as far as possible.
 Added lots more QuickCheck properties.
 Added subset predicates.
 Added infix operators.
+
+Version 0.2.0
+-------------
+
+Reorganised and extended tests.
+Added "rangeIsFull" predicate.

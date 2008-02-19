@@ -19,6 +19,10 @@ main = do
    check conf $ \(r1 :: Range Integer) -> prop_unionRange r1
    putStrLn "      * prop_intersectionRange"
    check conf $ \(r1 :: Range Integer) -> prop_intersectionRange r1
+   putStrLn "      * prop_intersectionOverlap"
+   check conf $ \(r1 :: Range Integer) -> prop_intersectionOverlap r1
+   putStrLn "      * prop_enclosureUnion"
+   check conf $ \(r1 :: Range Integer) -> prop_enclosureUnion r1
    putStrLn "      * prop_differenceRange"
    check conf $ \(r1 :: Range Integer) -> prop_differenceRange r1
    putStrLn "      * prop_singletonRangeHas"
@@ -33,6 +37,10 @@ main = do
    check conf $ \(r1 :: Range Double) -> prop_unionRange r1
    putStrLn "      * prop_intersectionRange"
    check conf $ \(r1 :: Range Double) -> prop_intersectionRange r1
+   putStrLn "      * prop_intersectionOverlap"
+   check conf $ \(r1 :: Range Integer) -> prop_intersectionOverlap r1
+   putStrLn "      * prop_enclosureUnion"
+   check conf $ \(r1 :: Range Integer) -> prop_enclosureUnion r1
    putStrLn "      * prop_differenceRange"
    check conf $ \(r1 :: Range Double) -> prop_differenceRange r1
    putStrLn "      * prop_singletonRangeHas"
