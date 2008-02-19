@@ -110,10 +110,14 @@ is not the same as a set with a final upper bound of "AboveAll".
 Unfortunately there is no simple way to guarantee that computations on
 infinite sets will terminate.  So infinite sets are not supported.
 
-QuickCheck
-----------
+QuickCheck and Tests
+--------------------
 
 All the types in the Ranged Set library are instances of Arbitrary from
 the QuickCheck library, and the source code includes a number of
 important properties for Ranges and RSets defined using QuickCheck.  These 
 can be treated as a formal specification of the properties of these types.
+
+The tests can be run by going into the "tests" directory and saying
+"make all".  A coverage report is generated, and detailed HTML coverage will
+be found in "tests/Report".  "make clean" to delete all the generated files.
