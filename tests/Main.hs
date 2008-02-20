@@ -17,6 +17,8 @@ main = do
    putStrLn "   Sparse type Integer:"
    putStrLn "      * prop_unionRange"
    check conf $ \(r1 :: Range Integer) -> prop_unionRange r1
+   putStrLn "      * prop_unionRangeLength"
+   check conf $ \(r1 :: Range Integer) -> prop_unionRangeLength r1
    putStrLn "      * prop_intersectionRange"
    check conf $ \(r1 :: Range Integer) -> prop_intersectionRange r1
    putStrLn "      * prop_intersectionOverlap"
@@ -35,6 +37,8 @@ main = do
    putStrLn "   Dense type Double:"
    putStrLn "      * prop_unionRange"
    check conf $ \(r1 :: Range Double) -> prop_unionRange r1
+   putStrLn "      * prop_unionRangeLength"
+   check conf $ \(r1 :: Range Double) -> prop_unionRangeLength r1
    putStrLn "      * prop_intersectionRange"
    check conf $ \(r1 :: Range Double) -> prop_intersectionRange r1
    putStrLn "      * prop_intersectionOverlap"

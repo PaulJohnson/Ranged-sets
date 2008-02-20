@@ -30,8 +30,8 @@ module Data.Ranged.Ranges (
    rangeUnion,
    rangeDifference,
    -- ** QuickCheck properties
-   -- $properties
    prop_unionRange,
+   prop_unionRangeLength,
    prop_intersectionRange,
    prop_differenceRange,
    prop_intersectionOverlap,
@@ -241,42 +241,7 @@ instance (Arbitrary v,  DiscreteOrdered v, Show v) =>
 
 -- QuickCheck Properties
 
-{- $properties
-These properties are defined twice, once for a sparse type (Integer), and 
-once for a dense type (Double).  Since the properties are identical for both, 
-definitons are given in the comments only for the Integer versions.
-
-
-Range union
-
-> prop_union r1 r2 n =
->    (r1 `rangeHas` n || r2 `rangeHas` n)
->    == (r1 `rangeUnion` r2) `rangeListHas` n
-
-Range intersection
-
-> prop_intersection r1 r2 n =
->    (r1 `rangeHas` n && r2 `rangeHas` n)
->    == (r1 `rangeIntersection` r2) `rangeHas` n
-
-Range difference
-
-> prop_difference r1 r2 n =
->    (r1 `rangeHas` n && not (r2 `rangeHas` n))
->    == (r1 `rangeDifference` r2) `rangeListHas` n
-
-Singleton range
-
-> prop_singletonHas v =
->    singletonRange v `rangeHas` v
-
-> prop_singletonConverse v =
->    rangeSingletonValue (singletonRange v) == Just v
-
--}
-
-
--- | Range union
+-- | The union of two ranges has a value iff either range has it.
 -- 
 -- > prop_unionRange r1 r2 n =
 -- >    (r1 `rangeHas` n || r2 `rangeHas` n)
@@ -286,7 +251,15 @@ prop_unionRange r1 r2 n =
    (r1 `rangeHas` n || r2 `rangeHas` n)
    == (r1 `rangeUnion` r2) `rangeListHas` n
 
--- | Range intersection
+-- | The union of two ranges always contains one or two ranges.
+-- 
+-- > prop_unionRangeLength r1 r2 = (n == 1) || (n == 2)
+-- >    where n = length $ rangeUnion r1 r2
+prop_unionRangeLength :: (DiscreteOrdered a) => Range a -> Range a -> Bool
+prop_unionRangeLength r1 r2 = (n == 1) || (n == 2)
+   where n = length $ rangeUnion r1 r2
+
+-- | The intersection of two ranges has a value iff both ranges have it.
 -- 
 -- > prop_intersectionRange r1 r2 n =
 -- >    (r1 `rangeHas` n && r2 `rangeHas` n)
@@ -296,21 +269,8 @@ prop_intersectionRange r1 r2 n =
    (r1 `rangeHas` n && r2 `rangeHas` n)
    == (r1 `rangeIntersection` r2) `rangeHas` n
 
--- | Range overlap is intersection
--- 
--- > prop_intersectionOverlap r1 r2 = 
--- >     (rangeIsEmpty $ rangeIntersection r1 r2) == (rangeOverlap r1 r2)
-
-prop_intersectionOverlap :: (DiscreteOrdered a) => Range a -> Range a -> Bool
-prop_intersectionOverlap r1 r2 = 
-    (rangeIsEmpty $ rangeIntersection r1 r2) == not (rangeOverlap r1 r2)
-
--- | Range enclosure makes union an identity function.
-prop_enclosureUnion :: (DiscreteOrdered a) => Range a -> Range a -> Bool
-prop_enclosureUnion r1 r2 =
-    rangeEncloses r1 r2 == (rangeUnion r1 r2 == [r1])
-
--- | Range difference
+-- | The difference of two ranges has a value iff the first range has it and
+-- the second does not.
 -- 
 -- > prop_differenceRange r1 r2 n =
 -- >    (r1 `rangeHas` n && not (r2 `rangeHas` n))
@@ -319,6 +279,21 @@ prop_differenceRange :: (DiscreteOrdered a) => Range a -> Range a -> a -> Bool
 prop_differenceRange r1 r2 n =
    (r1 `rangeHas` n && not (r2 `rangeHas` n))
    == (r1 `rangeDifference` r2) `rangeListHas` n
+
+-- | Iff two ranges overlap then their intersection is non-empty.
+-- 
+-- > prop_intersectionOverlap r1 r2 = 
+-- >     (rangeIsEmpty $ rangeIntersection r1 r2) == (rangeOverlap r1 r2)
+prop_intersectionOverlap :: (DiscreteOrdered a) => Range a -> Range a -> Bool
+prop_intersectionOverlap r1 r2 = 
+    (rangeIsEmpty $ rangeIntersection r1 r2) == not (rangeOverlap r1 r2)
+
+-- | Range enclosure makes union an identity function.
+-- 
+-- > prop_enclosureUnion r1 r2 = 
+-- >    rangeEncloses r1 r2 == (rangeUnion r1 r2 == [r1])
+prop_enclosureUnion :: (DiscreteOrdered a) => Range a -> Range a -> Bool
+prop_enclosureUnion r1 r2 = rangeEncloses r1 r2 == (rangeUnion r1 r2 == [r1])
 
 -- | Range Singleton has its member.
 -- 
