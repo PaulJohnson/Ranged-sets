@@ -18,4 +18,4 @@ Exposed-modules: Data.Ranged, Data.Ranged.Boundaries, Data.Ranged.Ranges,
 		Data.Ranged.RangedSet
 Extra-source-files: tests/Makefile, tests/Main.hs, README.txt, CHANGES.txt, 
 		INSTALL.txt, TODO.txt
-ghc-options:    -O -Wall
+ghc-options:    -Wall
