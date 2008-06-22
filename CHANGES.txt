@@ -41,3 +41,7 @@ Version 0.2.0
 
 Reorganised and extended tests.
 Added "rangeIsFull" predicate.
+
+Version 0.2.1
+-------------
+Require QuickCheck < 2.
