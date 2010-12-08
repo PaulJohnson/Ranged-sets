@@ -119,10 +119,10 @@ singletonRange v = Range (BoundaryBelow v) (BoundaryAbove v)
 -- | If the range is a singleton, returns @Just@ the value.  Otherwise returns
 -- @Nothing@.
 --
--- Known bug: This always returns @Nothing@ for ranges including 
--- @BoundaryBelowAll@ or @BoundaryAboveAll@.  For bounded types this can be 
+-- Known bug: This always returns @Nothing@ for ranges including
+-- @BoundaryBelowAll@ or @BoundaryAboveAll@.  For bounded types this can be
 -- incorrect.  For instance, the following range only contains one value:
--- 
+--
 -- >    Range (BoundaryBelow maxBound) BoundaryAboveAll
 rangeSingletonValue :: DiscreteOrdered v => Range v -> Maybe v
 rangeSingletonValue (Range (BoundaryBelow v1) (BoundaryBelow v2))
@@ -131,7 +131,7 @@ rangeSingletonValue (Range (BoundaryBelow v1) (BoundaryBelow v2))
 rangeSingletonValue (Range (BoundaryBelow v1) (BoundaryAbove v2))
    | v1 == v2        = Just v1
    | otherwise       = Nothing
-rangeSingletonValue (Range (BoundaryAbove v1) (BoundaryBelow v2)) = 
+rangeSingletonValue (Range (BoundaryAbove v1) (BoundaryBelow v2)) =
    do
       v2' <- adjacentBelow v2
       v2'' <- adjacentBelow v2'
@@ -234,15 +234,18 @@ instance (Arbitrary v,  DiscreteOrdered v, Show v) =>
       (1, return fullRange)
       ]
 
+instance (CoArbitrary v, DiscreteOrdered v, Show v) =>
+   CoArbitrary (Range v) where
+
    coarbitrary (Range lower upper) =
-      variant 0 . coarbitrary lower . coarbitrary upper
+      variant (0 :: Int) . coarbitrary lower . coarbitrary upper
 
 
 
 -- QuickCheck Properties
 
 -- | The union of two ranges has a value iff either range has it.
--- 
+--
 -- > prop_unionRange r1 r2 n =
 -- >    (r1 `rangeHas` n || r2 `rangeHas` n)
 -- >    == (r1 `rangeUnion` r2) `rangeListHas` n
@@ -252,7 +255,7 @@ prop_unionRange r1 r2 n =
    == (r1 `rangeUnion` r2) `rangeListHas` n
 
 -- | The union of two ranges always contains one or two ranges.
--- 
+--
 -- > prop_unionRangeLength r1 r2 = (n == 1) || (n == 2)
 -- >    where n = length $ rangeUnion r1 r2
 prop_unionRangeLength :: (DiscreteOrdered a) => Range a -> Range a -> Bool
@@ -260,7 +263,7 @@ prop_unionRangeLength r1 r2 = (n == 1) || (n == 2)
    where n = length $ rangeUnion r1 r2
 
 -- | The intersection of two ranges has a value iff both ranges have it.
--- 
+--
 -- > prop_intersectionRange r1 r2 n =
 -- >    (r1 `rangeHas` n && r2 `rangeHas` n)
 -- >    == (r1 `rangeIntersection` r2) `rangeHas` n
@@ -271,7 +274,7 @@ prop_intersectionRange r1 r2 n =
 
 -- | The difference of two ranges has a value iff the first range has it and
 -- the second does not.
--- 
+--
 -- > prop_differenceRange r1 r2 n =
 -- >    (r1 `rangeHas` n && not (r2 `rangeHas` n))
 -- >    == (r1 `rangeDifference` r2) `rangeListHas` n
@@ -281,28 +284,28 @@ prop_differenceRange r1 r2 n =
    == (r1 `rangeDifference` r2) `rangeListHas` n
 
 -- | Iff two ranges overlap then their intersection is non-empty.
--- 
--- > prop_intersectionOverlap r1 r2 = 
+--
+-- > prop_intersectionOverlap r1 r2 =
 -- >     (rangeIsEmpty $ rangeIntersection r1 r2) == (rangeOverlap r1 r2)
 prop_intersectionOverlap :: (DiscreteOrdered a) => Range a -> Range a -> Bool
-prop_intersectionOverlap r1 r2 = 
+prop_intersectionOverlap r1 r2 =
     (rangeIsEmpty $ rangeIntersection r1 r2) == not (rangeOverlap r1 r2)
 
 -- | Range enclosure makes union an identity function.
--- 
--- > prop_enclosureUnion r1 r2 = 
+--
+-- > prop_enclosureUnion r1 r2 =
 -- >    rangeEncloses r1 r2 == (rangeUnion r1 r2 == [r1])
 prop_enclosureUnion :: (DiscreteOrdered a) => Range a -> Range a -> Bool
 prop_enclosureUnion r1 r2 = rangeEncloses r1 r2 == (rangeUnion r1 r2 == [r1])
 
 -- | Range Singleton has its member.
--- 
+--
 -- > prop_singletonRangeHas v = singletonRange v `rangeHas` v
 prop_singletonRangeHas :: (DiscreteOrdered a) => a -> Bool
 prop_singletonRangeHas v = singletonRange v `rangeHas` v
 
 -- | Range Singleton has only its member.
--- 
+--
 -- > prop_singletonHasOnly v1 v2 =
 -- >    (v1 == v2) == (singletonRange v1 `rangeHas` v2)
 prop_singletonRangeHasOnly :: (DiscreteOrdered a) => a -> a -> Bool
@@ -310,7 +313,7 @@ prop_singletonRangeHasOnly v1 v2 =
    (v1 == v2) == (singletonRange v1 `rangeHas` v2)
 
 -- | A singleton range can have its value extracted.
--- 
+--
 -- > prop_singletonRangeConverse v =
 -- >    rangeSingletonValue (singletonRange v) == Just v
 prop_singletonRangeConverse:: (DiscreteOrdered a) => a -> Bool
@@ -318,17 +321,17 @@ prop_singletonRangeConverse v =
    rangeSingletonValue (singletonRange v) == Just v
 
 -- | The empty range is not a singleton.
--- 
+--
 -- > prop_emptyNonSingleton = rangeSingletonValue emptyRange == Nothing
 prop_emptyNonSingleton :: Bool
-prop_emptyNonSingleton = 
+prop_emptyNonSingleton =
     rangeSingletonValue (emptyRange :: Range Int) == Nothing
 
 -- | The full range is not a singleton.
--- 
+--
 -- > prop_fullNonSingleton = rangeSingletonValue fullRange == Nothing
 prop_fullNonSingleton :: Bool
-prop_fullNonSingleton = 
+prop_fullNonSingleton =
     rangeSingletonValue (fullRange :: Range Int) == Nothing
 
 -- | For real x and y, @x < y@ implies that any range between them is a
@@ -352,5 +355,5 @@ prop_intSingleton x y = forAll (rangeAround x y) $ \r ->
     where
       rangeAround v1 v2 = return Range `ap` genBound v1 `ap` genBound v2
       genBound v = elements [BoundaryAbove v, BoundaryBelow v]
-   
+
 

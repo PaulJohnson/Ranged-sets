@@ -82,7 +82,7 @@ validRangeList :: DiscreteOrdered v => [Range v] -> Bool
 
 validRangeList [] = True
 validRangeList [Range lower upper] = lower <= upper
-validRangeList ranges = and $ zipWith okAdjacent ranges (tail ranges)
+validRangeList rs = and $ zipWith okAdjacent rs (tail rs)
    where
       okAdjacent (Range lower1 upper1) (Range lower2 upper2) =
          lower1 <= upper1 && upper1 <= lower2 && lower2 <= upper2
@@ -91,8 +91,7 @@ validRangeList ranges = and $ zipWith okAdjacent ranges (tail ranges)
 -- | Rearrange and merge the ranges in the list so that they are in order and
 -- non-overlapping.
 normaliseRangeList :: DiscreteOrdered v => [Range v] -> [Range v]
-normaliseRangeList ranges =
-   normalise $ sort $ filter (not . rangeIsEmpty) ranges
+normaliseRangeList = normalise . sort . filter (not . rangeIsEmpty)
 
 
 -- Private routine: normalise a range list that is known to be already sorted.
@@ -204,12 +203,12 @@ rSetDifference rs1 rs2 = rs1 -/\- (rSetNegation rs2)
 
 -- | Set negation.
 rSetNegation :: DiscreteOrdered a => RSet a -> RSet a
-rSetNegation set = RSet $ ranges $ setBounds1
+rSetNegation set = RSet $ ranges1 $ setBounds1
    where
-      ranges (b1:b2:bs) = Range b1 b2 : ranges bs
-      ranges [BoundaryAboveAll] = []
-      ranges [b] = [Range b BoundaryAboveAll]
-      ranges _ = []
+      ranges1 (b1:b2:bs) = Range b1 b2 : ranges1 bs
+      ranges1 [BoundaryAboveAll] = []
+      ranges1 [b] = [Range b BoundaryAboveAll]
+      ranges1 _ = []
       setBounds1 = case setBounds of
          (BoundaryBelowAll : bs)  -> bs
          _                        -> BoundaryBelowAll : setBounds
@@ -237,12 +236,12 @@ rSetUnfold :: DiscreteOrdered a =>
       -- boundary, which must return a result greater than the argument
       -- (not checked).  If ranges overlap then they will be merged.
    -> RSet a
-rSetUnfold bound upperFunc succFunc = RSet $ normalise $ ranges bound
+rSetUnfold bound upperFunc succFunc = RSet $ normalise $ ranges1 bound
    where
-      ranges b =
+      ranges1 b =
          Range b (upperFunc b)
          : case succFunc b of
-            Just b2 -> ranges b2
+            Just b2 -> ranges1 b2
             Nothing -> []
 
 
@@ -265,7 +264,10 @@ instance (Arbitrary v, DiscreteOrdered v, Show v) =>
          rangeList (b1:b2:bs) = Range b1 b2 : rangeList bs
          rangeList _ = []
 
-   coarbitrary (RSet ls) = variant 0 . coarbitrary ls
+instance (CoArbitrary v, DiscreteOrdered v, Show v) =>
+      CoArbitrary (RSet v)
+   where
+   coarbitrary (RSet ls) = variant (0 :: Int) . coarbitrary ls
 
 -- ==================================================================
 -- QuickCheck Properties
@@ -290,14 +292,14 @@ prop_has :: (DiscreteOrdered a) => [Range a] -> a -> Bool
 prop_has ls v = (ls `rangeListHas` v) == makeRangedSet ls -?- v
 
 
--- | Verifies the correct membership of a set containing all integers 
+-- | Verifies the correct membership of a set containing all integers
 -- starting with the digit \"1\" up to 19999.
 --
 -- > prop_unfold = (v <= 99999 && head (show v) == '1') == (initial1 -?- v)
 -- >    where
 -- >       initial1 = rSetUnfold (BoundaryBelow 1) addNines times10
 -- >       addNines (BoundaryBelow n) = BoundaryAbove $ n * 2 - 1
--- >       times10 (BoundaryBelow n) = 
+-- >       times10 (BoundaryBelow n) =
 -- >          if n <= 1000 then Just $ BoundaryBelow $ n * 10 else Nothing
 
 prop_unfold :: Integer -> Bool
@@ -306,7 +308,7 @@ prop_unfold v = (v <= 99999 && head (show v) == '1') == (initial1 -?- v)
       initial1 = rSetUnfold (BoundaryBelow 1) addNines times10
       addNines (BoundaryBelow n) = BoundaryAbove $ n * 2 - 1
       addNines _ = error "Can't happen"
-      times10 (BoundaryBelow n) = 
+      times10 (BoundaryBelow n) =
          if n <= 10000 then Just $ BoundaryBelow $ n * 10 else Nothing
       times10 _ = error "Can't happen"
 
@@ -317,7 +319,7 @@ prop_unfold v = (v <= 99999 && head (show v) == '1') == (initial1 -?- v)
 -- | Iff a value is in either of two ranged sets then it is in the union of
 -- those two sets.
 --
--- > prop_union rs1 rs2 v = 
+-- > prop_union rs1 rs2 v =
 -- >    (rs1 -?- v || rs2 -?- v) == ((rs1 -\/- rs2) -?- v)
 prop_union :: (DiscreteOrdered a ) => RSet a -> RSet a -> a -> Bool
 prop_union rs1 rs2 v = (rs1 -?- v || rs2 -?- v) == ((rs1 -\/- rs2) -?- v)
@@ -452,7 +454,7 @@ prop_union_commutes rs1 rs2 = (rs1 -\/- rs2) == (rs2 -\/- rs1)
 --
 -- > prop_intersection_associates rs1 rs2 rs3 =
 -- >    ((rs1 -/\- rs2) -/\- rs3) == (rs1 -/\- (rs2 -/\- rs3))
-prop_intersection_associates :: (DiscreteOrdered a) => 
+prop_intersection_associates :: (DiscreteOrdered a) =>
    RSet a -> RSet a  -> RSet a -> Bool
 prop_intersection_associates rs1 rs2 rs3 =
    ((rs1 -/\- rs2) -/\- rs3) == (rs1 -/\- (rs2 -/\- rs3))
@@ -461,7 +463,7 @@ prop_intersection_associates rs1 rs2 rs3 =
 --
 -- > prop_union_associates rs1 rs2 rs3 =
 -- >    ((rs1 -\/- rs2) -\/- rs3) == (rs1 -\/- (rs2 -\/- rs3))
-prop_union_associates :: (DiscreteOrdered a) => 
+prop_union_associates :: (DiscreteOrdered a) =>
    RSet a -> RSet a  -> RSet a -> Bool
 prop_union_associates rs1 rs2 rs3 =
    ((rs1 -\/- rs2) -\/- rs3) == (rs1 -\/- (rs2 -\/- rs3))

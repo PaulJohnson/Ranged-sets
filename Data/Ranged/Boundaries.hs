@@ -55,27 +55,27 @@ class Ord a => DiscreteOrdered a where
    adjacentBelow :: a -> Maybe a
 
 
--- Implementation note: the precise rules about unbounded enumerated vs 
+-- Implementation note: the precise rules about unbounded enumerated vs
 -- bounded enumerated types are difficult to express using Haskell 98, so
 -- the prelude types are listed individually here.
 
-instance DiscreteOrdered Bool where 
+instance DiscreteOrdered Bool where
    adjacent = boundedAdjacent
    adjacentBelow = boundedBelow
 
-instance DiscreteOrdered Ordering where 
+instance DiscreteOrdered Ordering where
    adjacent = boundedAdjacent
    adjacentBelow = boundedBelow
 
-instance DiscreteOrdered Char where 
+instance DiscreteOrdered Char where
    adjacent = boundedAdjacent
    adjacentBelow = boundedBelow
 
-instance DiscreteOrdered Int where 
+instance DiscreteOrdered Int where
    adjacent = boundedAdjacent
    adjacentBelow = boundedBelow
 
-instance DiscreteOrdered Integer where 
+instance DiscreteOrdered Integer where
    adjacent = enumAdjacent
    adjacentBelow = Just . pred
 
@@ -220,8 +220,10 @@ instance Arbitrary a => Arbitrary (Boundary a) where
          v <- arbitrary
          oneof [return $ BoundaryAbove v, return $ BoundaryBelow v]
       )]
-   coarbitrary BoundaryBelowAll   = variant 0
-   coarbitrary BoundaryAboveAll   = variant 1
-   coarbitrary (BoundaryBelow v)  = variant 2 . coarbitrary v
-   coarbitrary (BoundaryAbove v)  = variant 3 . coarbitrary v
+
+instance CoArbitrary a => CoArbitrary (Boundary a) where
+   coarbitrary BoundaryBelowAll   = variant (0 :: Int)
+   coarbitrary BoundaryAboveAll   = variant (1 :: Int)
+   coarbitrary (BoundaryBelow v)  = variant (2 :: Int) . coarbitrary v
+   coarbitrary (BoundaryAbove v)  = variant (3 :: Int) . coarbitrary v
 
