@@ -1,13 +1,15 @@
-Version 0.0.4
+Version 0.0.2
 -------------
 
-Added Monoid instances and singleton ranges, courtesy of Jean-Philippe
-Bernardy.
+Fixed the infinite loop with infinite sets, at least as far as possible.
+Added lots more QuickCheck properties.
+Added subset predicates.
+Added infix operators.
 
 Version 0.0.3
 -------------
 
-Removed support for infinite sets.  They sometimes still work, but generally 
+Removed support for infinite sets.  They sometimes still work, but generally
 are more trouble than they are worth.  There is no simple set of rules for
 client applications to guarantee termination.
 
@@ -28,13 +30,11 @@ Added "emptyRange" and "fullRange"
 
 
 
-Version 0.0.2
+Version 0.0.4
 -------------
 
-Fixed the infinite loop with infinite sets, at least as far as possible.
-Added lots more QuickCheck properties.
-Added subset predicates.
-Added infix operators.
+Added Monoid instances and singleton ranges, courtesy of Jean-Philippe
+Bernardy.
 
 Version 0.2.0
 -------------
@@ -45,3 +45,8 @@ Added "rangeIsFull" predicate.
 Version 0.2.1
 -------------
 Require QuickCheck < 2.
+
+Version 0.3.0
+-------------
+Require QuickCheck >= 2.4. This changes the API for the Arbitrary and CoArbitrary
+instances, so it gets a version number bump.
