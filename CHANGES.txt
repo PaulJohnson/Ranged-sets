@@ -50,3 +50,10 @@ Version 0.3.0
 -------------
 Require QuickCheck >= 2.4. This changes the API for the Arbitrary and CoArbitrary
 instances, so it gets a version number bump.
+
+Version 0.4.0
+-------------
+
+Added Semigroup instance.
+Enabled "cabal test".
+Master repository now on GitHub.
