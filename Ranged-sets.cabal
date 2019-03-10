@@ -4,11 +4,11 @@ cabal-version: -any
 build-type: Simple
 license: BSD3
 license-file: LICENSE.txt
-copyright: Paul Johnson, 2005, 2006, 2007, 2008
+copyright: Paul Johnson, 2005, 2006, 2007, 2008, 2019
 maintainer: paul@cogito.org.uk
 build-depends: HUnit -any, QuickCheck >=2, base >=4 && <5
 stability: beta
-homepage: http://code.haskell.org/ranged-sets
+homepage: https://github.com/PaulJohnson/Ranged-sets
 package-url:
 bug-reports:
 synopsis: Ranged sets for Haskell
