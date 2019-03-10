@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
@@ -8,7 +8,7 @@ import Test.QuickCheck
 
 
 conf :: Args
-conf = stdArgs { maxSuccess = 1000, maxDiscard = 10000 }
+conf = stdArgs { maxSuccess = 1000, maxDiscardRatio = 100 }
 
 check :: (Test.QuickCheck.Testable prop) => prop -> IO ()
 check = quickCheckWith conf
