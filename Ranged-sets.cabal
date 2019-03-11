@@ -1,6 +1,6 @@
 name: Ranged-sets
 version: 0.4.0
-cabal-version: >= 1.24
+cabal-version: 1.24
 build-type: Simple
 license: BSD3
 license-file: LICENSE.txt
@@ -20,7 +20,7 @@ description: A ranged set is an ordered list of ranges.  This allows sets such a
              >    ("F" <= s < "G")
 category: Data
 author: Paul Johnson
-extra-source-files: CHANGES.txt INSTALL.txt README.txt TODO.txt
+extra-source-files: CHANGES.txt README.txt
 
 library
     build-depends: HUnit -any, QuickCheck >=2, base >=4 && <5
@@ -28,10 +28,12 @@ library
                  Data.Ranged.RangedSet Data.Ranged.Boundaries
     exposed: True
     buildable: True
+    default-language: Haskell2010
 
 
 Test-suite properties
     type: exitcode-stdio-1.0
+    default-language: Haskell2010
     main-is: Main.hs
     hs-source-dirs: tests .
     other-modules: Data.Ranged Data.Ranged.Ranges
