@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 -----------------------------------------------------------------------------
 --
 -- Module      :  Data.Ranged.Ranges
@@ -29,6 +31,8 @@ module Data.Ranged.Ranges (
    rangeIntersection,
    rangeUnion,
    rangeDifference,
+
+#ifdef WITH_TESTS
    -- ** QuickCheck properties
    prop_unionRange,
    prop_unionRangeLength,
@@ -42,13 +46,17 @@ module Data.Ranged.Ranges (
    prop_emptyNonSingleton,
    prop_fullNonSingleton,
    prop_nonSingleton,
-   prop_intSingleton
+   prop_intSingleton,
+#endif
 ) where
 
 import Control.Monad
 import Data.Ranged.Boundaries
 import Data.Maybe
+
+#ifdef WITH_TESTS
 import Test.QuickCheck
+#endif
 
 -- | A Range has upper and lower boundaries.
 data Ord v => Range v = Range {rangeLower, rangeUpper :: Boundary v}
@@ -213,6 +221,7 @@ rangeDifference r1@(Range lower1 upper1) (Range lower2 upper2) =
       intersects = (max lower1 lower2) < (min upper1 upper2)
 
 
+#ifdef WITH_TESTS
 -- QuickCheck generators
 
 instance (Arbitrary v,  DiscreteOrdered v, Show v) =>
@@ -356,4 +365,4 @@ prop_intSingleton x y = forAll (rangeAround x y) $ \r ->
       rangeAround v1 v2 = return Range `ap` genBound v1 `ap` genBound v2
       genBound v = elements [BoundaryAbove v, BoundaryBelow v]
 
-
+#endif
