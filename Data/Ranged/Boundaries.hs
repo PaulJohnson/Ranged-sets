@@ -19,6 +19,7 @@ module Data.Ranged.Boundaries (
    (/>/)
 ) where
 
+import Data.Int
 import Data.Ratio
 import Data.Word
 import Test.QuickCheck
@@ -96,6 +97,22 @@ instance DiscreteOrdered Word64 where
    adjacent = boundedAdjacent
    adjacentBelow = boundedBelow
 
+instance DiscreteOrdered Int8 where
+  adjacent = boundedAdjacent
+  adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Int16 where
+  adjacent = boundedAdjacent
+  adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Int32 where
+  adjacent = boundedAdjacent
+  adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Int64 where
+  adjacent = boundedAdjacent
+  adjacentBelow = boundedBelow
+  
 instance DiscreteOrdered Integer where
    adjacent = enumAdjacent
    adjacentBelow = Just . pred
