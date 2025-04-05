@@ -76,7 +76,23 @@ instance DiscreteOrdered Int where
    adjacent = boundedAdjacent
    adjacentBelow = boundedBelow
 
+instance DiscreteOrdered Word where
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
 instance DiscreteOrdered Word8 where
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Word16 where
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Word32 where
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Word64 where
    adjacent = boundedAdjacent
    adjacentBelow = boundedBelow
 
