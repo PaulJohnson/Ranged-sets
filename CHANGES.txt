@@ -63,3 +63,5 @@ Version 0.5.0
 
 Added Ord instance.
 Added instances for DiscreteOrdered for Data.Int and Data.Word types.
+Made test dependencies optional.
+

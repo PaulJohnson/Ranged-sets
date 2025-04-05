@@ -20,7 +20,7 @@ description: A ranged set is an ordered list of ranges.  This allows sets such a
              >    ("F" <= s < "G")
 category: Data
 author: Paul Johnson
-extra-source-files: CHANGES.txt README.txt
+extra-doc-files: CHANGES.txt README.txt
 
 flag with-tests
     description: Include unit tests / extra  instances.
@@ -30,8 +30,8 @@ flag with-tests
 library
     build-depends: base >=4.11 && <5
     if flag(with-tests)
-        ghc-options: -DWITH_TESTS
-        build-depends: QuickCheck >=2
+        cpp-options: -DWITH_TESTS
+        build-depends: QuickCheck >=2 && < 3
     exposed-modules: Data.Ranged Data.Ranged.Ranges
                  Data.Ranged.RangedSet Data.Ranged.Boundaries
     exposed: True
