@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Ranged.Boundaries
@@ -22,7 +24,9 @@ module Data.Ranged.Boundaries (
 import Data.Int
 import Data.Ratio
 import Data.Word
+#ifdef WITH_TESTS
 import Test.QuickCheck
+#endif
 
 infix 4 />/
 
@@ -248,6 +252,7 @@ instance (DiscreteOrdered a) => Ord (Boundary a) where
                BoundaryBelowAll -> EQ
                _        -> LT
 
+#ifdef WITH_TESTS
 -- QuickCheck Generator
 
 instance Arbitrary a => Arbitrary (Boundary a) where
@@ -265,3 +270,4 @@ instance CoArbitrary a => CoArbitrary (Boundary a) where
    coarbitrary (BoundaryBelow v)  = variant (2 :: Int) . coarbitrary v
    coarbitrary (BoundaryAbove v)  = variant (3 :: Int) . coarbitrary v
 
+#endif

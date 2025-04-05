@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Data.Ranged.RangedSet (
    -- ** Ranged Set Type
    RSet,
@@ -23,6 +25,8 @@ module Data.Ranged.RangedSet (
    -- ** Useful Sets
    rSetEmpty,
    rSetFull,
+
+#ifdef WITH_TESTS
    -- ** QuickCheck Properties
    -- *** Construction
    prop_validNormalised,
@@ -54,13 +58,17 @@ module Data.Ranged.RangedSet (
    prop_union_associates,
    prop_de_morgan_intersection,
    prop_de_morgan_union,
+#endif
 ) where
 
 import Data.Ranged.Boundaries
 import Data.Ranged.Ranges
 
 import Data.List
+
+#ifdef WITH_TESTS
 import Test.QuickCheck
+#endif
 
 infixl 7 -/\-
 infixl 6 -\/-, -!-
@@ -246,6 +254,7 @@ rSetUnfold bound upperFunc succFunc = RSet $ normalise $ ranges1 bound
             Nothing -> []
 
 
+#ifdef WITH_TESTS
 -- QuickCheck Generators
 
 instance (Arbitrary v, DiscreteOrdered v, Show v) =>
@@ -485,3 +494,5 @@ prop_de_morgan_intersection rs1 rs2 =
 prop_de_morgan_union :: (DiscreteOrdered a) => RSet a -> RSet a -> Bool
 prop_de_morgan_union rs1 rs2 =
    rSetNegation (rs1 -\/- rs2) == (rSetNegation rs1 -/\- rSetNegation rs2)
+
+#endif
