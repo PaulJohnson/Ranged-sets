@@ -21,8 +21,9 @@ module Data.Ranged.Boundaries (
    (/>/)
 ) where
 
+import Data.Int
 import Data.Ratio
-
+import Data.Word
 #ifdef WITH_TESTS
 import Test.QuickCheck
 #endif
@@ -80,6 +81,42 @@ instance DiscreteOrdered Int where
    adjacent = boundedAdjacent
    adjacentBelow = boundedBelow
 
+instance DiscreteOrdered Word where
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Word8 where
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Word16 where
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Word32 where
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Word64 where
+   adjacent = boundedAdjacent
+   adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Int8 where
+  adjacent = boundedAdjacent
+  adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Int16 where
+  adjacent = boundedAdjacent
+  adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Int32 where
+  adjacent = boundedAdjacent
+  adjacentBelow = boundedBelow
+
+instance DiscreteOrdered Int64 where
+  adjacent = boundedAdjacent
+  adjacentBelow = boundedBelow
+  
 instance DiscreteOrdered Integer where
    adjacent = enumAdjacent
    adjacentBelow = Just . pred

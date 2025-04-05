@@ -77,7 +77,7 @@ infixl 5 -<=-, -<-, -?-
 -- | An RSet (for Ranged Set) is a list of ranges.  The ranges must be sorted
 -- and not overlap.
 newtype DiscreteOrdered v => RSet v = RSet {rSetRanges :: [Range v]}
-   deriving (Eq, Show)
+   deriving (Show, Eq, Ord)
 
 instance DiscreteOrdered a => Semigroup (RSet a) where
    (<>) = rSetUnion
